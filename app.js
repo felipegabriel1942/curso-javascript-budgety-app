@@ -61,8 +61,13 @@ var budgetControler = (function() {
             calculateTotal('inc');
 
             data.budget = data.totals.inc - data.totals.exp;
+            console.log(data.totals.exp);
 
-            data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+            if (data.totals.inc > 0) {
+                data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+            } else {
+                data.percentage = -1;
+            }    
         },
 
         getBudget: function() {
@@ -91,7 +96,11 @@ var UIController = (function() {
         inputValue: '.add__value',
         inputBtnAdd: '.add__btn',
         incomeContainer: '.income__list',
-        expenseContainer: '.expenses__list'
+        expenseContainer: '.expenses__list',
+        budgetLabel: '.budget__value',
+        incomeLabel: '.budget__income--value',
+        expenseLabel: '.budget__expenses--value',
+        percentageLabel: '.budget__expenses--percentage'
     }
 
     return {
@@ -159,6 +168,20 @@ var UIController = (function() {
             fieldsArray[0].focus();
         },
 
+        //ATUALIZA A AREA RESERVADA AO CALCULO DO BUDGET
+        displayBudget: function(obj) {
+            document.querySelector(DOMStrings.budgetLabel).textContent = obj.budget;
+            document.querySelector(DOMStrings.incomeLabel).textContent = obj.totalInc;
+            document.querySelector(DOMStrings.expenseLabel).textContent = obj.totalExp;
+            
+
+            if (obj.percentage > 0) {
+                document.querySelector(DOMStrings.percentageLabel).textContent = obj.percentage + '%';
+            } else {
+                document.querySelector(DOMStrings.percentageLabel).textContent = '---';
+            }
+        },
+
         getDOMstrings: function() {
             return DOMStrings;
         }
@@ -189,13 +212,15 @@ var controller = (function(budgetCtrl, UICtrl) {
 
         var budget = budgetCtrl.getBudget();
 
-        console.log(budget);
+       UICtrl.displayBudget(budget);
     }
 
     var ctrlAddItem = function() {
 
        input = UICtrl.getInput();
 
+       //VALIDAÇÃO PARA ADICIONAR APENAS QUANDO CAMPO DESCRIÇÃO TIVER TEXTO
+       // E O VALOR EXISTIR E FOR MAIOR QUE 30
        if (input.description !== '' && !isNaN(input.value) && input.value > 0) {
             newItem = budgetCtrl.addItem(input.type, input.description, input.value);
        
@@ -210,8 +235,15 @@ var controller = (function(budgetCtrl, UICtrl) {
 
     return {
         //UTILIZADO PARA INICIAR OS EVENTOS DE CLIQUE
+        //OU AÇÕES EM GERAL
         init: function() {
             console.log('Aplicação iniciou.');
+            UICtrl.displayBudget({
+                budget: 0,
+                totalInc: 0,
+                totalExp: 0,
+                percentage: -1
+            });
             setupEventListeners();
         }
     }
