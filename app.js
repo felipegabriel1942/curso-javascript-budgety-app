@@ -1,18 +1,21 @@
 // CONTROLADOR DE ORÇAMENTO
 var budgetControler = (function() {
 
+    //OBJETO DESPESA
     var Expense = function(id, description, value) {
         this.id = id;
         this.description = description;
         this.value = value;
     };
 
+    //OBJETO RECEITA
     var Income = function(id, description, value) {
         this.id = id;
         this.description = description;
         this.value = value;
     };
 
+    //FUNCAO PARA CALCULAR RESULTADO LIQUIDO
     var calculateTotal = function(type) {
         var sum = 0;
 
@@ -23,6 +26,7 @@ var budgetControler = (function() {
         data.totals[type] = sum;
     };
 
+    //OBJETO CONTENDO LISTAS DE ITENS, TOTAIS, VALOR LIQUIDO E PERCENTUAL DE DESPESA
     var data = {
         allItems: {
             exp: [],
@@ -37,6 +41,7 @@ var budgetControler = (function() {
     };
 
     return {
+        //ADICIONAR ITEM NA LISTA
         addItem: function(type, des, val) {
             var newItem, ID;
 
@@ -56,12 +61,26 @@ var budgetControler = (function() {
             return newItem;
         },
 
+        //DELETAR ITEM DA LISTA
+        deleteItem: function(type, id) {
+            var ids, index;
+            ids = data.allItems[type].map(function(current){
+                return current.id;
+            });
+
+            index = ids.indexOf(id);
+            
+            if (index !== -1) {
+                data.allItems[type].splice(index, 1);
+            }
+        },
+
+        //CALCULAR VALOR LIQUIDO
         calculateBugdget: function() {
             calculateTotal('exp');
             calculateTotal('inc');
 
             data.budget = data.totals.inc - data.totals.exp;
-            console.log(data.totals.exp);
 
             if (data.totals.inc > 0) {
                 data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
@@ -70,6 +89,7 @@ var budgetControler = (function() {
             }    
         },
 
+        //PEGAR RESULTADOS DO VALOR DO TOPO
         getBudget: function() {
             return {
                 budget: data.budget,
@@ -100,7 +120,8 @@ var UIController = (function() {
         budgetLabel: '.budget__value',
         incomeLabel: '.budget__income--value',
         expenseLabel: '.budget__expenses--value',
-        percentageLabel: '.budget__expenses--percentage'
+        percentageLabel: '.budget__expenses--percentage',
+        container: '.container'
     }
 
     return {
@@ -112,13 +133,14 @@ var UIController = (function() {
             };
         },
 
+        //ADIONA ITEM DA LISTA NA TELA (DOM)
         addListItem: function(obj, type) {
             var html, newHtml, element;
 
             //CRIA O HTML COM UM TEMPLATE COM VARIAVEIS DETERMINADAS PELO %variavel%
             if (type === 'inc') {
                 element = DOMStrings.incomeContainer;
-                html = '<div class="item clearfix" id="income-%id%">' +
+                html = '<div class="item clearfix" id="inc-%id%">' +
                     '<div class="item__description">%description%</div>' +
                     '<div class="right clearfix">' +
                         '<div class="item__value">%value%</div>' +
@@ -129,7 +151,7 @@ var UIController = (function() {
                 '</div>';
             } else if (type === 'exp') {
                 element = DOMStrings.expenseContainer;
-                html = '<div class="item clearfix" id="expense-%id%">' +
+                html = '<div class="item clearfix" id="exp-%id%">' +
                     '<div class="item__description">%description%</div>' +
                     '<div class="right clearfix">' +
                         '<div class="item__value">%value%</div>' +
@@ -148,6 +170,12 @@ var UIController = (function() {
 
             //INSERE O HTML CRIADO NO DOM
             document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
+        },
+
+        //REMOVER ITEM DA TELA
+        deleteListItem: function(selectorId) {
+            var el = document.getElementById(selectorId);
+            el.parentNode.removeChild(el);
         },
 
         clearFields: function() {
@@ -205,16 +233,20 @@ var controller = (function(budgetCtrl, UICtrl) {
                ctrlAddItem();
             }        
         });
+
+        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
     }
 
+    //ATUALIZA A PERTE DE ORÇAMENTO DA TELA
     var updateBudget = function() {
         budgetCtrl.calculateBugdget();
 
         var budget = budgetCtrl.getBudget();
 
-       UICtrl.displayBudget(budget);
+        UICtrl.displayBudget(budget);
     }
 
+    //CONTROLE DE ADIÇÃO DE ITEM DO CONTROLE DE DADOS E UI
     var ctrlAddItem = function() {
 
        input = UICtrl.getInput();
@@ -231,6 +263,26 @@ var controller = (function(budgetCtrl, UICtrl) {
             updateBudget();
        }
 
+    };
+
+    //CONTROLE DE DELEÇÃO DE ITEM DO CONTROLE DE DADOS E UI
+    var ctrlDeleteItem = function(event) {
+        var itemId, splitID, type, id;
+
+        //SOBE A ESTRUTURA DO DOM ONDE ESTA CONTIDO O LOCAL ONDE HOUVE O EVENTO
+        itemId = event.target.parentNode.parentNode.parentNode.parentNode.id;
+
+        if (itemId) {
+            splitID = itemId.split('-');
+            type = splitID[0];
+            id = parseInt(splitID[1]);
+        }
+
+        budgetCtrl.deleteItem(type, id);
+
+        UICtrl.deleteListItem(itemId);
+        
+        updateBudget();
     };
 
     return {
